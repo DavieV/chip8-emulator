@@ -26,6 +26,20 @@ int main(int argc, char *args[]) {
   SDL_Delay(2000);
   SDL_DestroyWindow(window);
 
+  // Chip 8 game loop.
+
+  // initialize chip8 system
+
+  // load game into memory.
+
+  while (true) {
+    // Emulate one cycle.
+
+    // If the draw flag is set, update the screen.
+
+    // Store key press state (Press and Release).
+  }
+
   // Quit SDL
   SDL_Quit();
 
