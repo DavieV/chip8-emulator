@@ -31,12 +31,12 @@ typedef enum opcode {
   GET_DELAY,      // 0xFX07
   GET_KEY,        // 0xFX0A
   SET_DELAY,      // 0xFX15
-  SET_SOUND       // 0xFX18
-  // 0xFX1E
+  SET_SOUND,      // 0xFX18
+  ADD_X_I,        // 0xFX1E
   // 0xFX29
-  // 0xFX33
-  // 0xFX55
-  // 0xFX65
+  BCD,       // 0xFX33
+  REG_DUMP,  // 0xFX55
+  REG_LOAD,  // 0xFX65
 } opcode_t;
 
 typedef struct instruction {
@@ -67,11 +67,21 @@ typedef struct chip8 {
   // Represents the current position on the stack.
   uint8_t sp;
 
+  // Stores the state of the 16 keys.
+  uint8_t keys[16];
+
   // The Chip 8 has a monochrome screen with a 64 x 32 resolution.
   uint8_t screen[64 * 32];
 
   // Whether to skip the following instruction.
   uint8_t skip;
+
+  // Used for timing events. Counts down at 60Hz.
+  uint8_t delay_timer;
+
+  // Used for sound effects. A beeping sound is played whenever |sound_timer| is
+  // nonzero. Counts down at 60Hz.
+  uint8_t sound_timer;
 } chip8;
 
 // Create a new chip8 struct with it's values initialized.
@@ -115,7 +125,7 @@ void if_x_eq_nn(instruction next, chip8* system);
 void if_x_neq_nn(instruction next, chip8* system);
 
 // Performs the IF_X_EQ_Y instruction.
-// For the given instruction 0x3XNN skips the next instruction if VX == Y.
+// For the given instruction 0x3XNN skips the next instruction if VX == VY.
 void if_x_eq_y(instruction next, chip8* system);
 
 // Performs the SET_X_NN instruction.
@@ -170,6 +180,10 @@ void sub_x_y_rev(instruction next, chip8* system);
 //   - shifts VX to the left by 1
 void shift_x_left(instruction next, chip8* system);
 
+// Performs the IF_X_NEQ_Y instruction.
+// For the given instruction 0x9XY0 skips the next instruction if VX == VY.
+void if_x_neq_y(instruction next, chip8* system);
+
 // Performs the SET_I_NNN instruction.
 // For the given instruction 0xANNN sets I = NNN.
 void set_i_nnn(instruction next, chip8* system);
@@ -196,5 +210,60 @@ void set_rand(instruction next, chip8* system);
 // VF is set to 1 if any screen pixels are flipped from set to unset when the
 // sprite is drawn. Otherwise, it is set to 0.
 void draw(instruction next, chip8* system);
+
+// Performs the IF_KEY_EQ instruction.
+// For the given instruction 0xEX9E skips the next instruction if the key
+// corresponding to the value of VX is pressed.
+void if_key_eq(instruction next, chip8* system);
+
+// Performs the IF_KEY_NEQ instruction.
+// For the given instruction 0xEXA1 skips the next instruction if the key
+// corresponding to the value of VX is NOT pressed.
+void if_key_neq(instruction next, chip8* system);
+
+// Performs the GET_DELAY instruction.
+// For the given instruction 0xFX07 sets VX = delay_timer.
+void get_delay(instruction next, chip8* system);
+
+// Performs the GET_KEY instruction.
+// For the given instruction 0xFX0A waits for a key press and stores it's value
+// in VX.
+//
+// NOTE: This is a blocking operation. All processing is halted until the next
+//       key event.
+void get_key(instruction next, chip8* system);
+
+// Performs the SET_DELAY instruction.
+// For the given instruction 0xFX15 sets delay_timer = VX
+void set_delay(instruction next, chip8* system);
+
+// Performs the SET_SOUND instruction.
+// For the given instruction 0xFX18 sets sound_timer = VX
+void set_sound(instruction next, chip8* system);
+
+// Performs the ADD_X_I instruction.
+// For the given instruction 0xFX1E adds VX to I.
+// NOTE: The carry flag (VF) is not affected.
+void add_x_i(instruction next, chip8* system);
+
+// Performs the BCD instruction.
+// For the given instruction 0xFX33:
+//   - Extract the value of VX
+//   - Store the value of the hundreds digit at I
+//   - Store the value of the tens     digit at I+1
+//   - Store the value of the ones     digit at I+2
+void bcd(instruction next, chip8* system);
+
+// Performs the REG_DUMP instruction.
+// For the given instruction 0xFX55
+//   - stores V0 to VX in memory starting from I
+//   - I is not modified by the operation.
+void reg_dump(instruction next, chip8* system);
+
+// Performs the REG_LOAD instruction.
+// For the given instruction 0xFX65
+//   - loads V0 to VX from memory starting at I
+//   - I is not modified by the operation.
+void reg_load(instruction next, chip8* system);
 
 void emulate_cycle(chip8* system);

@@ -281,6 +281,23 @@ void test_shift_x_left() {
   assert(system.V[0] == 0b11111110);
 }
 
+void test_if_x_neq_y() {
+  // Setup |next| to represent the IF_X_NEQ_Y operation (0x9XY0).
+  instruction next;
+  next.hi = 0x90;
+  next.lo = 0x10;
+
+  chip8 system = initialize_chip8();
+  system.V[0] = 14;
+  system.V[1] = 15;
+  if_x_neq_y(next, &system);
+  assert(system.skip == 1);
+
+  system.V[0] = 15;
+  if_x_neq_y(next, &system);
+  assert(system.skip == 0);
+}
+
 void test_set_i_nnn() {
   chip8 system = initialize_chip8();
   // Setup |next| to represent the SET_I_NNN operation (0xANNN).
@@ -356,6 +373,7 @@ void test_draw() {
       assert(system.screen[i * 32 + j] == 1);
     }
   }
+  // We expect that VF is 0 since no set pixels were flipped by the draw.
   assert(system.V[0x0F] == 0);
 
   next.lo = 0x11;
@@ -375,7 +393,150 @@ void test_draw() {
   assert(system.screen[22 + 32 * 20] == 1);
   assert(system.screen[23 + 32 * 20] == 1);
 
+  // We expect that VF is 1 since a set pixel was flipped by the draw.
   assert(system.V[0x0F] == 1);
+}
+
+void test_if_key_eq() {
+  // Setup |next| to represent the IF_KEY_EQ operation (0xE09E).
+  instruction next;
+  next.hi = 0xE0;
+  next.lo = 0x9E;
+
+  chip8 system = initialize_chip8();
+  system.V[0] = 0x0A;
+  system.keys[0x0A] = 1;
+  if_key_eq(next, &system);
+  assert(system.skip == 1);
+
+  system.V[0] = 7;
+  system.keys[7] = 0;
+  if_key_eq(next, &system);
+  assert(system.skip == 0);
+}
+
+void test_if_key_neq() {
+  // Setup |next| to represent the DRAW operation (0xE0A1).
+  instruction next;
+  next.hi = 0xE0;
+  next.lo = 0xA1;
+
+  chip8 system = initialize_chip8();
+  system.V[0] = 0x0A;
+  system.keys[0x0A] = 1;
+  if_key_neq(next, &system);
+  assert(system.skip == 0);
+
+  system.V[0] = 7;
+  system.keys[7] = 0;
+  if_key_neq(next, &system);
+  assert(system.skip == 1);
+}
+
+void test_get_delay() {
+  // Setup |next| to represent the GET_DELAY operation (0xFX07).
+  instruction next;
+  next.hi = 0xF0;
+  next.lo = 0x07;
+
+  chip8 system = initialize_chip8();
+  system.delay_timer = 10;
+  get_delay(next, &system);
+  assert(system.V[0] == 10);
+}
+
+void test_set_delay() {
+  // Setup |next| to represent the SET_DELAY operation (0xFX15).
+  instruction next;
+  next.hi = 0xF0;
+  next.lo = 0x15;
+
+  chip8 system = initialize_chip8();
+  system.V[0] = 10;
+  set_delay(next, &system);
+  assert(system.delay_timer == 10);
+}
+
+void test_set_sound() {
+  // Setup |next| to represent the SET_SOUND operation (0xFX18).
+  instruction next;
+  next.hi = 0xF0;
+  next.lo = 0x18;
+
+  chip8 system = initialize_chip8();
+  system.V[0] = 10;
+  set_sound(next, &system);
+  assert(system.sound_timer == 10);
+}
+
+void test_add_x_i() {
+  // Setup |next| to represent the ADD_X_I operation (0xFX1E).
+  instruction next;
+  next.hi = 0xF0;
+  next.lo = 0x1E;
+
+  chip8 system = initialize_chip8();
+  system.V[0] = 10;
+  add_x_i(next, &system);
+  assert(system.I == 10);
+  add_x_i(next, &system);
+  assert(system.I == 20);
+}
+
+void test_bcd() {
+  // Setup |next| to represent the BCD operation (0xFX33).
+  instruction next;
+  next.hi = 0xF0;
+  next.lo = 0x33;
+
+  chip8 system = initialize_chip8();
+  system.V[0] = 123;
+  bcd(next, &system);
+  assert(system.memory[system.I] == 1);
+  assert(system.memory[system.I + 1] == 2);
+  assert(system.memory[system.I + 2] == 3);
+}
+
+void test_reg_dump() {
+  // Setup |next| to represent the REG_DUMP operation (0xFX55).
+  instruction next;
+  next.hi = 0xF2;
+  next.lo = 0x55;
+
+  chip8 system = initialize_chip8();
+
+  // Setup initial register values.
+  system.V[0] = 123;
+  system.V[1] = 98;
+  system.V[2] = 255;
+
+  reg_dump(next, &system);
+
+  // We expect the values of [V0, V2] to be written to memory at [I, I+2].
+  assert(system.memory[system.I] == 123);
+  assert(system.memory[system.I + 1] == 98);
+  assert(system.memory[system.I + 2] == 255);
+}
+
+void test_reg_load() {
+  // Setup |next| to represent the REG_LOAD operation (0xFX63).
+  instruction next;
+  next.hi = 0xF2;
+  next.lo = 0x65;
+
+  chip8 system = initialize_chip8();
+
+  // Setup initial system memory.
+  system.memory[system.I] = 123;
+  system.memory[system.I + 1] = 98;
+  system.memory[system.I + 2] = 255;
+
+  reg_load(next, &system);
+
+  // We expect the values at [I, I+2] to be loaded into [V0, V2].
+  assert(system.V[0] == 123);
+  assert(system.V[1] == 98);
+  assert(system.V[2] == 255);
 }
 
 int main(int argc, char* argv[]) {
@@ -401,11 +562,20 @@ int main(int argc, char* argv[]) {
   test_shift_x_right();      // 0x8XY6
   test_shift_x_left();       // 0x8XY7
   test_shift_x_left();       // 0x8XYE
-  // 0x9XY0
-  test_set_i_nnn();  // 0xANNN
-  test_jump_addr();  // 0xBNNN
-  test_set_rand();   // 0xCXNN
-  test_draw();
+  test_if_x_neq_y();         // 0x9XY0
+  test_set_i_nnn();          // 0xANNN
+  test_jump_addr();          // 0xBNNN
+  test_set_rand();           // 0xCXNN
+  test_draw();               // 0xDXYN
+  test_if_key_eq();          // 0xEX9E
+  test_if_key_neq();         // 0xEXA1
+  test_get_delay();          // 0xFX07
+  test_set_delay();          // 0xFX15
+  test_set_sound();          // 0xFX18
+  test_add_x_i();            // 0xFX1E
+  test_bcd();                // 0xFX33
+  test_reg_dump();           // 0xFX55
+  test_reg_load();           // 0xFX65
 
   fprintf(stderr, "Tests completed successfully!\n");
   return 0;

@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "SDL2/SDL.h"
+
 chip8 initialize_chip8() {
   chip8 system;
   // Zero-out all of the values in |system|.
@@ -236,6 +238,14 @@ void shift_x_left(instruction next, chip8* system) {
   system->V[x] = system->V[x] << 1;
 }
 
+void if_x_neq_y(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+  // Extract the value of Y;
+  uint8_t y = next.lo >> 4;
+  system->skip = (system->V[x] != system->V[y]);
+}
+
 void set_i_nnn(instruction next, chip8* system) {
   // Extract the value of NNN.
   uint16_t n = ((next.hi & 0x0F) << 8) + next.lo;
@@ -286,16 +296,114 @@ void draw(instruction next, chip8* system) {
   // Extract the value of N.
   uint8_t n = next.lo & 0x0F;
 
-  fprintf(stderr, "VX: %d VX %d n %d\n", system->V[x], system->V[y], n);
-
   // Set the initial state of VF to 0.
   system->V[0x0F] = 0;
 
   for (int i = 0; i < n; ++i) {
     // Load the row as bit-encoded memory.
     uint8_t row = system->memory[system->I + i];
-    fprintf(stderr, "row: %d\n", row);
     draw_row(system->V[x], system->V[y] + i, row, system);
+  }
+}
+
+void if_key_eq(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+  system->skip = system->keys[system->V[x]];
+}
+
+void if_key_neq(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+  system->skip = !system->keys[system->V[x]];
+}
+
+SDL_Event wait_for_keypress() {
+  SDL_Event e;
+  while (SDL_PollEvent(&e) == 0 ||
+         (e.type != SDL_KEYDOWN && e.type != SDL_QUIT))
+    ;
+  return e;
+}
+
+void get_delay(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+  system->V[x] = system->delay_timer;
+}
+
+void get_key(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+
+  SDL_Event e = wait_for_keypress();
+  if (e.type == SDL_QUIT) {
+    fprintf(stderr, "Received quit event");
+    exit(1);
+  }
+  if (e.type == SDL_KEYDOWN) {
+    SDL_Keycode keycode = e.key.keysym.sym;
+    fprintf(stderr, "key pressed: %d\n", keycode);
+    // TODO: Add validation for chip8 keycode values.
+    // Convert pressed key to chip8 hex keyboard value.
+
+    // Store pressed key in VX
+    system->V[x] = keycode;
+  }
+}
+
+void set_delay(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+  system->delay_timer = system->V[x];
+}
+
+void set_sound(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+  system->sound_timer = system->V[x];
+}
+
+void add_x_i(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+  system->I += system->V[x];
+}
+
+void bcd(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+
+  uint8_t vx = system->V[x];
+  // Store the ones digit at I+2
+  system->memory[system->I + 2] = vx % 10;
+
+  // Store the tens digit at I+1
+  vx /= 10;
+  system->memory[system->I + 1] = vx % 10;
+
+  // Store the hundreds digit at I
+  vx /= 10;
+  system->memory[system->I] = vx % 10;
+}
+
+void reg_dump(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+
+  // Store the values of each register from V0 to VX in memory.
+  for (uint8_t i = 0; i <= x; ++i) {
+    system->memory[system->I + i] = system->V[i];
+  }
+}
+
+void reg_load(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+
+  // Load values for V0 to VX from memory.
+  for (uint8_t i = 0; i <= x; ++i) {
+    system->V[i] = system->memory[system->I + i];
   }
 }
 
