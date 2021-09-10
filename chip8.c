@@ -7,10 +7,52 @@
 
 #include "SDL2/SDL.h"
 
+void load_hex_fonts(chip8* system) {
+  // Format for hex font characters is taken from
+  // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
+
+  // Ascii "0".
+  memcpy(system->memory, (char[]){0xF0, 0x90, 0x90, 0x90, 0xF0}, 5);
+  // Ascii "1".
+  memcpy(system->memory + 5, (char[]){0x20, 0x60, 0x20, 0x20, 0x70}, 5);
+  // Ascii "2".
+  memcpy(system->memory + 10, (char[]){0xF0, 0x10, 0xF0, 0x80, 0xF0}, 5);
+  // Ascii "3".
+  memcpy(system->memory + 15, (char[]){0xF0, 0x10, 0xF0, 0x10, 0xF0}, 5);
+  // Ascii "4".
+  memcpy(system->memory + 20, (char[]){0x90, 0x90, 0xF0, 0x10, 0x10}, 5);
+  // Ascii "5".
+  memcpy(system->memory + 25, (char[]){0xF0, 0x80, 0xF0, 0x10, 0xF0}, 5);
+  // Ascii "6".
+  memcpy(system->memory + 30, (char[]){0xF0, 0x80, 0xF0, 0x90, 0xF0}, 5);
+  // Ascii "7".
+  memcpy(system->memory + 35, (char[]){0xF0, 0x10, 0x20, 0x40, 0x40}, 5);
+  // Ascii "8".
+  memcpy(system->memory + 40, (char[]){0xF0, 0x90, 0xF0, 0x90, 0xF0}, 5);
+  // Ascii "9".
+  memcpy(system->memory + 45, (char[]){0xF0, 0x90, 0xF0, 0x10, 0xF0}, 5);
+  // Ascii "A".
+  memcpy(system->memory + 50, (char[]){0xF0, 0x90, 0xF0, 0x90, 0x90}, 5);
+  // Ascii "B".
+  memcpy(system->memory + 55, (char[]){0xE0, 0x90, 0xE0, 0x90, 0xE0}, 5);
+  // Ascii "C".
+  memcpy(system->memory + 60, (char[]){0xF0, 0x80, 0x80, 0x80, 0xF0}, 5);
+  // Ascii "D".
+  memcpy(system->memory + 65, (char[]){0xE0, 0x90, 0x90, 0x90, 0xE0}, 5);
+  // Ascii "E".
+  memcpy(system->memory + 70, (char[]){0xF0, 0x80, 0xF0, 0x80, 0xF0}, 5);
+  // Ascii "F".
+  memcpy(system->memory + 75, (char[]){0xF0, 0x80, 0xF0, 0x80, 0x80}, 5);
+}
+
 chip8 initialize_chip8() {
   chip8 system;
   // Zero-out all of the values in |system|.
   memset(&system, 0, sizeof(system));
+
+  // Load the font sprites into memory.
+  load_hex_fonts(&system);
+
   return system;
 }
 
@@ -370,6 +412,64 @@ void add_x_i(instruction next, chip8* system) {
   system->I += system->V[x];
 }
 
+void load_char(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+
+  switch (system->V[x]) {
+    case 0x00:
+      system->I = 0x00;  // 0
+      break;
+    case 0x01:
+      system->I = 5;  // 5
+      break;
+    case 0x02:
+      system->I = 10;  // 10
+      break;
+    case 0x03:
+      system->I = 15;  // 15
+      break;
+    case 0x04:
+      system->I = 20;  // 20
+      break;
+    case 0x05:
+      system->I = 25;  // 25
+      break;
+    case 0x06:
+      system->I = 30;  // 30
+      break;
+    case 0x07:
+      system->I = 35;  // 35
+      break;
+    case 0x08:
+      system->I = 40;  // 40
+      break;
+    case 0x09:
+      system->I = 45;  // 45
+      break;
+    case 0x0A:
+      system->I = 50;  // 50
+      break;
+    case 0x0B:
+      system->I = 55;  // 55
+      break;
+    case 0x0C:
+      system->I = 60;  // 60
+      break;
+    case 0x0D:
+      system->I = 65;  // 65
+      break;
+    case 0x0E:
+      system->I = 70;  // 70
+      break;
+    case 0x0F:
+      system->I = 75;  // 75
+      break;
+    default:
+      break;
+  }
+}
+
 void bcd(instruction next, chip8* system) {
   // Extract the value of X.
   uint8_t x = next.hi & 0x0F;
@@ -407,44 +507,121 @@ void reg_load(instruction next, chip8* system) {
   }
 }
 
-void emulate_cycle(chip8* system) {
-  // Determine next instrution.
-  instruction next = get_instruction(system);
-
+void perform_instruction(instruction next, chip8* system) {
   switch (next.opcode) {
     case CLEAR_SCREEN:
+      clear_screen(next, system);
       break;
     case RETURN:
+      return_subroutine(next, system);
       break;
     case JUMP:
+      jump(next, system);
       break;
     case CALL:
+      call(next, system);
       break;
     case IF_X_EQ_NN:
+      if_x_eq_nn(next, system);
       break;
     case IF_X_NEQ_NN:
+      if_x_neq_nn(next, system);
       break;
     case IF_X_EQ_Y:
+      if_x_eq_y(next, system);
       break;
     case SET_X_NN:
+      set_x_nn(next, system);
       break;
     case ADD_X_NN:
+      add_x_nn(next, system);
       break;
     case SET_X_Y:
+      set_x_y(next, system);
       break;
     case OR_X_Y:
+      or_x_y(next, system);
       break;
     case AND_X_Y:
+      and_x_y(next, system);
       break;
     case XOR_X_Y:
+      xor_x_y(next, system);
       break;
     case ADD_X_Y:
+      add_x_y(next, system);
       break;
     case SUB_X_Y:
+      sub_x_y(next, system);
+      break;
+    case SHIFT_X_RIGHT:
+      shift_x_right(next, system);
+      break;
+    case SHIFT_X_LEFT:
+      shift_x_left(next, system);
+      break;
+    case IF_X_NEQ_Y:
+      if_x_neq_y(next, system);
+      break;
+    case SET_I_NNN:
+      set_i_nnn(next, system);
+      break;
+    case JUMP_ADDR:
+      jump_addr(next, system);
+      break;
+    case SET_RAND:
+      set_rand(next, system);
+      break;
+    case DRAW:
+      draw(next, system);
+      break;
+    case IF_KEY_EQ:
+      if_key_eq(next, system);
+      break;
+    case IF_KEY_NEQ:
+      if_key_neq(next, system);
+      break;
+    case GET_DELAY:
+      get_delay(next, system);
+      break;
+    case SET_DELAY:
+      set_delay(next, system);
+      break;
+    case SET_SOUND:
+      set_sound(next, system);
+      break;
+    case ADD_X_I:
+      add_x_i(next, system);
+      break;
+    case LOAD_CHAR:
+      load_char(next, system);
+      break;
+    case BCD:
+      bcd(next, system);
+      break;
+    case REG_DUMP:
+      reg_dump(next, system);
+      break;
+    case REG_LOAD:
+      reg_load(next, system);
       break;
     default:
       break;
   }
+}
 
-  // act.
+void emulate_cycle(chip8* system) {
+  // Determine next instrution.
+  instruction next = get_instruction(system);
+
+  // If the skip flag is set from the previous cycle, ignore the current
+  // instruction and reset the skip flag.
+  if (system->skip) {
+    system->skip = 0;
+  } else {
+    perform_instruction(next, system);
+  }
+
+  // Increment the Program Counter by 2 bytes.
+  system->pc += 2;
 }

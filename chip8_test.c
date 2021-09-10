@@ -5,6 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+void test_load_hex_fonts() {
+  chip8 system;
+  // Zero-out all of the values in |system|.
+  memset(&system, 0, sizeof(system));
+  load_hex_fonts(&system);
+}
+
 void test_clear_screen() {
   // Setup |next| to represent the CLEAR_SCREEN operation (0x00E0).
   instruction next;
@@ -348,6 +355,9 @@ void test_draw() {
   next.lo = 0x18;
 
   chip8 system = initialize_chip8();
+  // Explicitly zero-out |system| to clear font sprites from memory.
+  memset(&system, 0, sizeof(system));
+
   system.I = 0;
   system.V[0] = 0;
   system.V[1] = 0;
@@ -379,6 +389,8 @@ void test_draw() {
   next.lo = 0x11;
   system.V[0] = 16;
   system.V[1] = 20;
+  // Explitly set this pixel on the screen before the draw. We expect it will be
+  // flipped by the draw operation and the carry flag will be set.
   system.screen[16 + 32 * 20] = 1;
 
   draw(next, &system);
@@ -543,6 +555,10 @@ int main(int argc, char* argv[]) {
   fprintf(stderr, "Running tests...\n");
 
   // Call any test functions here.
+
+  test_load_hex_fonts();
+
+  // Instruction tests.
 
   test_clear_screen();       // 0x00E0
   test_return_subroutine();  // 0x00EE

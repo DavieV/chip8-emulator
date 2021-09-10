@@ -33,10 +33,10 @@ typedef enum opcode {
   SET_DELAY,      // 0xFX15
   SET_SOUND,      // 0xFX18
   ADD_X_I,        // 0xFX1E
-  // 0xFX29
-  BCD,       // 0xFX33
-  REG_DUMP,  // 0xFX55
-  REG_LOAD,  // 0xFX65
+  LOAD_CHAR,      // 0xFX29
+  BCD,            // 0xFX33
+  REG_DUMP,       // 0xFX55
+  REG_LOAD,       // 0xFX65
 } opcode_t;
 
 typedef struct instruction {
@@ -83,6 +83,9 @@ typedef struct chip8 {
   // nonzero. Counts down at 60Hz.
   uint8_t sound_timer;
 } chip8;
+
+// Load the ascii font sprites into |system|'s memory.
+void load_hex_fonts(chip8* system);
 
 // Create a new chip8 struct with it's values initialized.
 chip8 initialize_chip8();
@@ -245,6 +248,11 @@ void set_sound(instruction next, chip8* system);
 // For the given instruction 0xFX1E adds VX to I.
 // NOTE: The carry flag (VF) is not affected.
 void add_x_i(instruction next, chip8* system);
+
+// Performs the LOAD_CHAR instruction.
+// For the given instruction 0xFX29 sets I to the location of the sprite for the
+// character in VX.
+void load_char(instruction next, chip8* system);
 
 // Performs the BCD instruction.
 // For the given instruction 0xFX33:
