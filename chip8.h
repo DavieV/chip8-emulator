@@ -1,6 +1,9 @@
 #include <stdint.h>
 
+#include "SDL2/SDL.h"
+
 #define FONT_SIZE 80
+#define CLOCK_SPEED 1000000
 
 typedef enum opcode {
   UNKNOWN = 0,
@@ -95,6 +98,8 @@ typedef struct chip8 {
   // executed. If this flag is set then the Program Counter isn't incremented
   // for the cycle.
   uint8_t jumped;
+
+  uint64_t cycle;
 } chip8;
 
 // Load the ascii font sprites into |system|'s memory.
@@ -293,3 +298,10 @@ void reg_dump(instruction next, chip8* system);
 void reg_load(instruction next, chip8* system);
 
 void emulate_cycle(chip8* system);
+
+// Returns a nonzero value if |keycode| represents a key on the chip8 hex
+// keypad.
+uint8_t is_chip8_key(SDL_Keycode keycode);
+
+// Returns the hex-key value which corresponds to |keycode|.
+uint8_t hex_keycode(SDL_Keycode keycode);

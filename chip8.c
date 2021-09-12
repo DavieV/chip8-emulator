@@ -510,10 +510,76 @@ void get_delay(instruction next, chip8* system) {
   system->V[x] = system->delay_timer;
 }
 
+uint8_t is_chip8_key(SDL_Keycode keycode) {
+  switch (keycode) {
+    case SDLK_1:
+    case SDLK_2:
+    case SDLK_3:
+    case SDLK_4:
+    case SDLK_q:
+    case SDLK_w:
+    case SDLK_e:
+    case SDLK_r:
+    case SDLK_a:
+    case SDLK_s:
+    case SDLK_d:
+    case SDLK_f:
+    case SDLK_z:
+    case SDLK_x:
+    case SDLK_c:
+    case SDLK_v:
+      return 1;
+    default:
+      return 0;
+  }
+  return 0;
+}
+
+uint8_t hex_keycode(SDL_Keycode keycode) {
+  switch (keycode) {
+    case SDLK_1:
+      return 0x01;
+    case SDLK_2:
+      return 0x02;
+    case SDLK_3:
+      return 0x03;
+    case SDLK_4:
+      return 0x0C;
+    case SDLK_q:
+      return 0x04;
+    case SDLK_w:
+      return 0x05;
+    case SDLK_e:
+      return 0x06;
+    case SDLK_r:
+      return 0x0D;
+    case SDLK_a:
+      return 0x07;
+    case SDLK_s:
+      return 0x08;
+    case SDLK_d:
+      return 0x09;
+    case SDLK_f:
+      return 0x0E;
+    case SDLK_z:
+      return 0x0A;
+    case SDLK_x:
+      return 0x00;
+    case SDLK_c:
+      return 0x0B;
+    case SDLK_v:
+      return 0x0F;
+    default:
+      fprintf(stderr, "Invalid hex keycode %d\n", keycode);
+      return 0;
+  }
+}
+
 SDL_Event wait_for_keypress() {
   SDL_Event e;
   while (SDL_PollEvent(&e) == 0 ||
-         (e.type != SDL_KEYDOWN && e.type != SDL_QUIT))
+         ((e.type != SDL_KEYDOWN || !is_chip8_key(e.key.keysym.sym)) &&
+          e.type != SDL_QUIT))
     ;
   return e;
 }
@@ -534,7 +600,7 @@ void get_key(instruction next, chip8* system) {
     // Convert pressed key to chip8 hex keyboard value.
 
     // Store pressed key in VX
-    system->V[x] = keycode;
+    system->V[x] = hex_keycode(keycode);
   }
 }
 
@@ -728,6 +794,9 @@ void perform_instruction(instruction next, chip8* system) {
     case GET_DELAY:
       get_delay(next, system);
       break;
+    case GET_KEY:
+      get_key(next, system);
+      break;
     case SET_DELAY:
       set_delay(next, system);
       break;
@@ -772,5 +841,18 @@ void emulate_cycle(chip8* system) {
     system->pc += 2;
   } else {
     system->jumped = 0;
+  }
+
+  ++system->cycle;
+
+  // Update system timers.
+  if (system->cycle > CLOCK_SPEED / 60) {
+    if (system->delay_timer > 0) {
+      --system->delay_timer;
+    }
+    if (system->sound_timer > 0) {
+      fprintf(stderr, "BEEP!\n");
+      --system->sound_timer;
+    }
   }
 }

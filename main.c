@@ -58,18 +58,28 @@ int main(int argc, char *args[]) {
   system.pc = 0x200;
 
   // load game into memory.
-  if (load_program("test_opcode.ch8", &system)) {
+  if (load_program("pong.ch8", &system)) {
     fprintf(stderr, "Failed to load program\n");
   }
 
   // Chip 8 game loop.
   uint8_t keep_window_open = 1;
-  SDL_Event window_event;
+  SDL_Event event;
   while (keep_window_open) {
-    while (SDL_PollEvent(&window_event) > 0) {
-      switch (window_event.type) {
+    while (SDL_PollEvent(&event) > 0) {
+      switch (event.type) {
         case SDL_QUIT:
           keep_window_open = 0;
+          break;
+        case SDL_KEYDOWN:
+          if (is_chip8_key(event.key.keysym.sym)) {
+            system.keys[hex_keycode(event.key.keysym.sym)] = 1;
+          }
+          break;
+        case SDL_KEYUP:
+          if (is_chip8_key(event.key.keysym.sym)) {
+            system.keys[hex_keycode(event.key.keysym.sym)] = 0;
+          }
           break;
       }
     }
@@ -83,8 +93,6 @@ int main(int argc, char *args[]) {
       SDL_UpdateWindowSurface(window);
       system.draw_flag = 0;
     }
-
-    // Store key press state (Press and Release).
   }
 
   // Quit SDL
