@@ -7,6 +7,10 @@
 
 #include "SDL2/SDL.h"
 
+void print_instruction(instruction i) {
+  fprintf(stderr, "opcode: %d hi: %2x lo: %2x\n", i.opcode, i.hi, i.lo);
+}
+
 void load_hex_fonts(chip8* system) {
   // Format for hex font characters is taken from
   // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
@@ -45,13 +49,31 @@ void load_hex_fonts(chip8* system) {
   memcpy(system->memory + 75, (char[]){0xF0, 0x80, 0xF0, 0x80, 0x80}, 5);
 }
 
+int load_program(const char* filename, chip8* system) {
+  FILE* f = fopen(filename, "rb");
+  if (f == NULL) {
+    fprintf(stderr, "Failed to open file: %s\n", filename);
+    return 1;
+  }
+
+  fseek(f, 0, SEEK_END);
+  uint64_t length = ftell(f);
+  if (length > sizeof(system->memory)) {
+    fprintf(stderr, "File is to large to fit in chip8 system memory.\n");
+    return 1;
+  }
+
+  fseek(f, 0, SEEK_SET);
+  fread(system->memory + 0x200, 1, length, f);
+
+  fclose(f);
+  return 0;
+}
+
 chip8 initialize_chip8() {
   chip8 system;
   // Zero-out all of the values in |system|.
   memset(&system, 0, sizeof(system));
-
-  // Load the font sprites into memory.
-  load_hex_fonts(&system);
 
   return system;
 }
@@ -69,42 +91,153 @@ instruction get_instruction(const chip8* system) {
   next.hi = system->memory[system->pc];
   next.lo = system->memory[system->pc + 1];
 
-  // The first 4 bits of |hi| are used to determine the opcode.
+  // The highest 4 bits of |hi| are used to determine the opcode.
   uint8_t msb = next.hi >> 4;
+
+  // The last 4 bits of |lo| are used to disambiguate instructions with the same
+  // value for |msb|.
+  uint8_t lsb = next.lo & 0x0F;
 
   switch (msb) {
     case 0x0:
+      if (next.hi == 0x00) {
+        if (next.lo == 0xE0) {
+          next.opcode = CLEAR_SCREEN;
+        } else if (next.lo == 0xEE) {
+          next.opcode = RETURN;
+        } else {
+          fprintf(stderr, "Unexpected lo:%2x for msb 0x00\n", next.lo);
+          exit(1);
+        }
+      } else {
+        fprintf(stderr, "machine code routine...\n");
+        exit(1);
+        next.opcode = 0;
+      }
       break;
-    case 0x1:
+    case 0x01:
       next.opcode = JUMP;
       break;
-    case 0x2:
+    case 0x02:
       next.opcode = CALL;
       break;
-    case 0x3:
+    case 0x03:
       next.opcode = IF_X_EQ_NN;
       break;
-    case 0x4:
+    case 0x04:
       next.opcode = IF_X_NEQ_NN;
       break;
-    case 0x5:
+    case 0x05:
       next.opcode = IF_X_EQ_Y;
       break;
-    case 0x6:
+    case 0x06:
       next.opcode = SET_X_NN;
       break;
-    case 0x7:
+    case 0x07:
       next.opcode = ADD_X_NN;
       break;
-    case 0x8:
-    case 0x9:
-    case 0xA:
-    case 0xB:
-    case 0xC:
-    case 0xD:
-    case 0xE:
-    case 0xF:
+    case 0x08:
+      switch (lsb) {
+        case 0:
+          next.opcode = SET_X_Y;
+          break;
+        case 1:
+          next.opcode = OR_X_Y;
+          break;
+        case 2:
+          next.opcode = AND_X_Y;
+          break;
+        case 3:
+          next.opcode = XOR_X_Y;
+          break;
+        case 4:
+          next.opcode = ADD_X_Y;
+          break;
+        case 5:
+          next.opcode = SUB_X_Y;
+          break;
+        case 6:
+          next.opcode = SHIFT_X_RIGHT;
+          break;
+        case 7:
+          next.opcode = SUB_X_Y_REV;
+          break;
+        case 0x0E:
+          next.opcode = SHIFT_X_LEFT;
+          break;
+        default:
+          fprintf(stderr, "Unexpected lsb:%2x for msb 0x08\n", lsb);
+          exit(1);
+          break;
+      }
+      break;
+    case 0x09:
+      next.opcode = IF_X_NEQ_Y;
+      break;
+    case 0x0A:
+      next.opcode = SET_I_NNN;
+      break;
+    case 0x0B:
+      next.opcode = JUMP_ADDR;
+      break;
+    case 0x0C:
+      next.opcode = SET_RAND;
+      break;
+    case 0x0D:
+      next.opcode = DRAW;
+      break;
+    case 0x0E:
+      switch (next.lo) {
+        case 0x9E:
+          next.opcode = IF_KEY_EQ;
+          break;
+        case 0xA1:
+          next.opcode = IF_KEY_NEQ;
+          break;
+        default:
+          fprintf(stderr, "Unexpected lo:%2x for msb 0x0E\n", next.lo);
+          exit(1);
+          break;
+      }
+      break;
+    case 0x0F:
+      switch (next.lo) {
+        case 0x07:
+          next.opcode = GET_DELAY;
+          break;
+        case 0x0A:
+          next.opcode = GET_KEY;
+          break;
+        case 0x15:
+          next.opcode = SET_DELAY;
+          break;
+        case 0x18:
+          next.opcode = SET_SOUND;
+          break;
+        case 0x1E:
+          next.opcode = ADD_X_I;
+          break;
+        case 0x29:
+          next.opcode = LOAD_CHAR;
+          break;
+        case 0x33:
+          next.opcode = BCD;
+          break;
+        case 0x55:
+          next.opcode = REG_DUMP;
+          break;
+        case 0x65:
+          next.opcode = REG_LOAD;
+          break;
+        default:
+          fprintf(stderr, "Unexpected lo:%2x for msb 0x0F\n", next.lo);
+          exit(1);
+          break;
+      }
+      break;
     default:
+      fprintf(stderr, "Unexpected value for msb:%2x\n", msb);
+      exit(1);
       break;
   }
 
@@ -130,6 +263,9 @@ void jump(instruction next, chip8* system) {
   // Extract the value of NNN.
   uint16_t n = ((next.hi & 0x0F) << 8) + next.lo;
   system->pc = n;
+
+  // Mark that a jump operation has been performed.
+  system->jumped = 1;
 }
 
 void call(instruction next, chip8* system) {
@@ -141,6 +277,9 @@ void call(instruction next, chip8* system) {
 
   // Jump to the location of |n|.
   system->pc = n;
+
+  // Mark that a jump operation has been performed.
+  system->jumped = 1;
 }
 
 void if_x_eq_nn(instruction next, chip8* system) {
@@ -299,6 +438,9 @@ void jump_addr(instruction next, chip8* system) {
   uint16_t n = ((next.hi & 0x0F) << 8) + next.lo;
   // Jump to V0 + n.
   system->pc = system->V[0] + n;
+
+  // Mark that a jump operation has been performed.
+  system->jumped = 1;
 }
 
 void set_rand(instruction next, chip8* system) {
@@ -315,7 +457,7 @@ void draw_row(uint8_t x, uint8_t y, uint8_t row, chip8* system) {
   for (int i = 0; i < 8; ++i) {
     uint8_t sprite_pixel = (row >> i) & 1;
     // Start from the right side of the row.
-    uint16_t screen_index = (x + (7 - i)) + (32 * y);
+    uint16_t screen_index = (x + (7 - i)) + (64 * y);
 
     // Store the previous state of the screen pixel.
     uint8_t previous_state = system->screen[screen_index];
@@ -346,6 +488,8 @@ void draw(instruction next, chip8* system) {
     uint8_t row = system->memory[system->I + i];
     draw_row(system->V[x], system->V[y] + i, row, system);
   }
+
+  system->draw_flag = 1;
 }
 
 void if_key_eq(instruction next, chip8* system) {
@@ -360,18 +504,18 @@ void if_key_neq(instruction next, chip8* system) {
   system->skip = !system->keys[system->V[x]];
 }
 
+void get_delay(instruction next, chip8* system) {
+  // Extract the value of X.
+  uint8_t x = next.hi & 0x0F;
+  system->V[x] = system->delay_timer;
+}
+
 SDL_Event wait_for_keypress() {
   SDL_Event e;
   while (SDL_PollEvent(&e) == 0 ||
          (e.type != SDL_KEYDOWN && e.type != SDL_QUIT))
     ;
   return e;
-}
-
-void get_delay(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  system->V[x] = system->delay_timer;
 }
 
 void get_key(instruction next, chip8* system) {
@@ -606,6 +750,7 @@ void perform_instruction(instruction next, chip8* system) {
       reg_load(next, system);
       break;
     default:
+      fprintf(stderr, "Unknown instruction: %d\n", next.opcode);
       break;
   }
 }
@@ -623,5 +768,9 @@ void emulate_cycle(chip8* system) {
   }
 
   // Increment the Program Counter by 2 bytes.
-  system->pc += 2;
+  if (!system->jumped) {
+    system->pc += 2;
+  } else {
+    system->jumped = 0;
+  }
 }

@@ -1,5 +1,7 @@
 #include <stdint.h>
 
+#define FONT_SIZE 80
+
 typedef enum opcode {
   UNKNOWN = 0,
   // 0NNN,
@@ -45,6 +47,8 @@ typedef struct instruction {
   uint8_t lo;
 } instruction;
 
+void print_instruction(instruction i);
+
 typedef struct chip8 {
   // The Chip 8 has 4k of memory in total.
   uint8_t memory[4096];
@@ -82,10 +86,24 @@ typedef struct chip8 {
   // Used for sound effects. A beeping sound is played whenever |sound_timer| is
   // nonzero. Counts down at 60Hz.
   uint8_t sound_timer;
+
+  // Indicates that a "DRAW" operation has been performed on the previous cycle
+  // and that the screen should be updated.
+  uint8_t draw_flag;
+
+  // Flag used to indicate that a "jump-like" instruction has just been
+  // executed. If this flag is set then the Program Counter isn't incremented
+  // for the cycle.
+  uint8_t jumped;
 } chip8;
 
 // Load the ascii font sprites into |system|'s memory.
 void load_hex_fonts(chip8* system);
+
+// Load the contents of |filename| into |system|. If the size of the file at
+// |filename| exceeds the available memory in |system| then a nonzero value will
+// be returned.
+int load_program(const char* filename, chip8* system);
 
 // Create a new chip8 struct with it's values initialized.
 chip8 initialize_chip8();

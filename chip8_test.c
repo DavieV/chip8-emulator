@@ -5,13 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-void test_load_hex_fonts() {
-  chip8 system;
-  // Zero-out all of the values in |system|.
-  memset(&system, 0, sizeof(system));
-  load_hex_fonts(&system);
-}
-
 void test_clear_screen() {
   // Setup |next| to represent the CLEAR_SCREEN operation (0x00E0).
   instruction next;
@@ -355,8 +348,6 @@ void test_draw() {
   next.lo = 0x18;
 
   chip8 system = initialize_chip8();
-  // Explicitly zero-out |system| to clear font sprites from memory.
-  memset(&system, 0, sizeof(system));
 
   system.I = 0;
   system.V[0] = 0;
@@ -380,7 +371,7 @@ void test_draw() {
   // Verify the expected screen state.
   for (int i = 0; i < 8; ++i) {
     for (int j = 0; j < 8; ++j) {
-      assert(system.screen[i * 32 + j] == 1);
+      assert(system.screen[i * 64 + j] == 1);
     }
   }
   // We expect that VF is 0 since no set pixels were flipped by the draw.
@@ -391,19 +382,19 @@ void test_draw() {
   system.V[1] = 20;
   // Explitly set this pixel on the screen before the draw. We expect it will be
   // flipped by the draw operation and the carry flag will be set.
-  system.screen[16 + 32 * 20] = 1;
+  system.screen[16 + 64 * 20] = 1;
 
   draw(next, &system);
 
   // Verify the expected screen state.
-  assert(system.screen[16 + 32 * 20] == 0);
-  assert(system.screen[17 + 32 * 20] == 1);
-  assert(system.screen[18 + 32 * 20] == 1);
-  assert(system.screen[19 + 32 * 20] == 1);
-  assert(system.screen[20 + 32 * 20] == 1);
-  assert(system.screen[21 + 32 * 20] == 1);
-  assert(system.screen[22 + 32 * 20] == 1);
-  assert(system.screen[23 + 32 * 20] == 1);
+  assert(system.screen[16 + 64 * 20] == 0);
+  assert(system.screen[17 + 64 * 20] == 1);
+  assert(system.screen[18 + 64 * 20] == 1);
+  assert(system.screen[19 + 64 * 20] == 1);
+  assert(system.screen[20 + 64 * 20] == 1);
+  assert(system.screen[21 + 64 * 20] == 1);
+  assert(system.screen[22 + 64 * 20] == 1);
+  assert(system.screen[23 + 64 * 20] == 1);
 
   // We expect that VF is 1 since a set pixel was flipped by the draw.
   assert(system.V[0x0F] == 1);
@@ -555,8 +546,6 @@ int main(int argc, char* argv[]) {
   fprintf(stderr, "Running tests...\n");
 
   // Call any test functions here.
-
-  test_load_hex_fonts();
 
   // Instruction tests.
 
