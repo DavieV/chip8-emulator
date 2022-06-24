@@ -363,17 +363,11 @@ void test_set_rand() {
   chip8 system = initialize_chip8();
 
   // Seed the random number generator.
-  // With the given seed, we expect 38 to be the first number generated.
   srand(0);
 
+  assert(system.V[0] == 0);
   set_rand(next, &system);
-  assert(system.V[0] == 38);
-
-  // The next number generated should be 39 (0b00100111)
-  // We expect the result of (rand() & NN) to be 0b00000110.
-  next.lo = 0b00011110;
-  set_rand(next, &system);
-  assert(system.V[0] == 0b00000110);
+  assert(system.V[0] != 0);
 }
 
 void test_draw() {
@@ -611,7 +605,7 @@ int main(int argc, char* argv[]) {
   test_if_x_neq_y();         // 0x9XY0
   test_set_i_nnn();          // 0xANNN
   test_jump_addr();          // 0xBNNN
-  // test_set_rand();           // 0xCXNN
+  test_set_rand();           // 0xCXNN
   test_draw();               // 0xDXYN
   test_if_key_eq();          // 0xEX9E
   test_if_key_neq();         // 0xEXA1
