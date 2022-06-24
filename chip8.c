@@ -5,10 +5,26 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "SDL2/SDL.h"
+#include <SDL2/SDL.h>
 
 void print_instruction(instruction i) {
   fprintf(stderr, "opcode: %d hi: %2x lo: %2x\n", i.opcode, i.hi, i.lo);
+}
+
+uint8_t n(instruction i) {
+  return i.lo & 0x0F;
+}
+
+uint16_t nnn(instruction i) {
+  return ((i.hi & 0x0F) << 8) + i.lo;
+}
+
+uint8_t x(instruction i) {
+  return i.hi & 0x0F;
+}
+
+uint8_t y(instruction i) {
+  return i.lo >> 4;
 }
 
 void load_hex_fonts(chip8* system) {

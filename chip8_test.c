@@ -5,6 +5,34 @@
 #include <stdlib.h>
 #include <string.h>
 
+void test_n() {
+  instruction i;
+  i.hi = 0xF1;
+  i.lo = 0x28;
+  assert(n(i) == 0x08);
+}
+
+void test_nnn() {
+  instruction i;
+  i.hi = 0xF1;
+  i.lo = 0x28;
+  assert(nnn(i) == 0x128);
+}
+
+void test_x() {
+  instruction i;
+  i.hi = 0xF1;
+  i.lo = 0x28;
+  assert(nnn(i) == 0x01);
+}
+
+void test_y() {
+  instruction i;
+  i.hi = 0xF1;
+  i.lo = 0x28;
+  assert(nnn(i) == 0x02);
+}
+
 void test_clear_screen() {
   // Setup |next| to represent the CLEAR_SCREEN operation (0x00E0).
   instruction next;
@@ -546,6 +574,12 @@ int main(int argc, char* argv[]) {
   fprintf(stderr, "Running tests...\n");
 
   // Call any test functions here.
+
+  // Utility function tests.
+  test_n();
+  test_nnn();
+  test_x();
+  test_y();
 
   // Instruction tests.
 

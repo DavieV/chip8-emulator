@@ -1,7 +1,8 @@
 #define SDL_MAIN_HANDLED
 #include <stdio.h>
 
-#include "SDL2/SDL.h"
+#include <SDL2/SDL.h>
+
 #include "chip8.h"
 
 #define SCREEN_WIDTH 640
@@ -60,6 +61,7 @@ int main(int argc, char *args[]) {
   // load game into memory.
   if (load_program("pong.ch8", &system)) {
     fprintf(stderr, "Failed to load program\n");
+    return 1;
   }
 
   // Chip 8 game loop.

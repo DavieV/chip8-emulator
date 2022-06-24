@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#include "SDL2/SDL.h"
+#include <SDL2/SDL.h>
 
 #define FONT_SIZE 80
 #define CLOCK_SPEED 1000000
@@ -101,6 +101,26 @@ typedef struct chip8 {
 
   uint64_t cycle;
 } chip8;
+
+// Extracts the value of N from the instruction |i| in the form:
+//
+//   ___N
+uint8_t n(instruction i);
+
+// Extracts the value of NNN from the instruction |i| in the form:
+//
+//  _NNN
+uint16_t nnn(instruction i);
+
+// Extracts the value of X from the instruction |i| in the form:
+//
+//  _X__
+uint8_t x(instruction i);
+
+// Extracts the value of Y from the given instruction |i|.
+//
+//  __Y_
+uint8_t y(instruction i);
 
 // Load the ascii font sprites into |system|'s memory.
 void load_hex_fonts(chip8* system);
