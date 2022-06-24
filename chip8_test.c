@@ -9,28 +9,35 @@ void test_n() {
   instruction i;
   i.hi = 0xF1;
   i.lo = 0x28;
-  assert(n(i) == 0x08);
+  assert(N(i) == 0x08);
+}
+
+void test_nn() {
+  instruction i;
+  i.hi = 0xF1;
+  i.lo = 0x28;
+  assert(NN(i) == 0x28);
 }
 
 void test_nnn() {
   instruction i;
   i.hi = 0xF1;
   i.lo = 0x28;
-  assert(nnn(i) == 0x128);
+  assert(NNN(i) == 0x128);
 }
 
 void test_x() {
   instruction i;
   i.hi = 0xF1;
   i.lo = 0x28;
-  assert(nnn(i) == 0x01);
+  assert(X(i) == 0x01);
 }
 
 void test_y() {
   instruction i;
   i.hi = 0xF1;
   i.lo = 0x28;
-  assert(nnn(i) == 0x02);
+  assert(Y(i) == 0x02);
 }
 
 void test_clear_screen() {
@@ -604,7 +611,7 @@ int main(int argc, char* argv[]) {
   test_if_x_neq_y();         // 0x9XY0
   test_set_i_nnn();          // 0xANNN
   test_jump_addr();          // 0xBNNN
-  test_set_rand();           // 0xCXNN
+  // test_set_rand();           // 0xCXNN
   test_draw();               // 0xDXYN
   test_if_key_eq();          // 0xEX9E
   test_if_key_neq();         // 0xEXA1

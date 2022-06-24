@@ -11,19 +11,23 @@ void print_instruction(instruction i) {
   fprintf(stderr, "opcode: %d hi: %2x lo: %2x\n", i.opcode, i.hi, i.lo);
 }
 
-uint8_t n(instruction i) {
+uint8_t N(instruction i) {
   return i.lo & 0x0F;
 }
 
-uint16_t nnn(instruction i) {
+uint8_t NN(instruction i) {
+  return i.lo;
+}
+
+uint16_t NNN(instruction i) {
   return ((i.hi & 0x0F) << 8) + i.lo;
 }
 
-uint8_t x(instruction i) {
+uint8_t X(instruction i) {
   return i.hi & 0x0F;
 }
 
-uint8_t y(instruction i) {
+uint8_t Y(instruction i) {
   return i.lo >> 4;
 }
 
@@ -276,8 +280,7 @@ void return_subroutine(instruction next, chip8* system) {
 }
 
 void jump(instruction next, chip8* system) {
-  // Extract the value of NNN.
-  uint16_t n = ((next.hi & 0x0F) << 8) + next.lo;
+  uint16_t n = NNN(next);
   system->pc = n;
 
   // Mark that a jump operation has been performed.
@@ -285,8 +288,7 @@ void jump(instruction next, chip8* system) {
 }
 
 void call(instruction next, chip8* system) {
-  // Extract the value of NNN.
-  uint16_t n = ((next.hi & 0x0F) << 8) + next.lo;
+  uint16_t n = NNN(next);
   // Store the current program counter on the stack.
   system->stack[system->sp] = system->pc;
   system->sp += 1;
@@ -299,78 +301,62 @@ void call(instruction next, chip8* system) {
 }
 
 void if_x_eq_nn(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
   uint8_t n = next.lo;
   system->skip = (system->V[x] == n);
 }
 
 void if_x_neq_nn(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  uint8_t n = next.lo;
+  uint8_t x = X(next);
+  uint8_t n = N(next);
   system->skip = (system->V[x] != n);
 }
 
 void if_x_eq_y(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  // Extract the value of Y;
-  uint8_t y = next.lo >> 4;
+  uint8_t x = X(next);
+  uint8_t y = Y(next);
   system->skip = (system->V[x] == system->V[y]);
 }
 
 void set_x_nn(instruction next, chip8* system) {
-  // Extract value of X.
-  uint8_t x = next.hi & 0x0F;
-  uint8_t n = next.lo;
+  uint8_t x = X(next);
+  uint8_t n = NN(next);
   system->V[x] = n;
 }
 
 void add_x_nn(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  uint8_t n = next.lo;
+  uint8_t x = X(next);
+  uint8_t n = NN(next);
   system->V[x] += n;
 }
 
 void set_x_y(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  // Extract the value of Y;
-  uint8_t y = next.lo >> 4;
+  uint8_t x = X(next);
+  uint8_t y = Y(next);
   system->V[x] = system->V[y];
 }
 
 void or_x_y(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  // Extract the value of Y;
-  uint8_t y = next.lo >> 4;
+  uint8_t x = X(next);
+  uint8_t y = Y(next);
   system->V[x] = system->V[x] | system->V[y];
 }
 
 void and_x_y(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  // Extract the value of Y;
-  uint8_t y = next.lo >> 4;
+  uint8_t x = X(next);
+  uint8_t y = Y(next);
   system->V[x] = system->V[x] & system->V[y];
 }
 
 void xor_x_y(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  // Extract the value of Y;
-  uint8_t y = next.lo >> 4;
+  uint8_t x = X(next);
+  uint8_t y = Y(next);
   system->V[x] = system->V[x] ^ system->V[y];
 }
 
 void add_x_y(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  // Extract the value of Y;
-  uint8_t y = next.lo >> 4;
+  uint8_t x = X(next);
+  uint8_t y = Y(next);
 
   // If the result of the addition would cause an overflow set the carry flag
   // (VF) to 1.
@@ -384,10 +370,8 @@ void add_x_y(instruction next, chip8* system) {
 }
 
 void sub_x_y(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  // Extract the value of Y;
-  uint8_t y = next.lo >> 4;
+  uint8_t x = X(next);
+  uint8_t y = Y(next);
 
   int16_t sub = system->V[x] - system->V[y];
   system->V[0xF] = 1;
@@ -399,8 +383,7 @@ void sub_x_y(instruction next, chip8* system) {
 }
 
 void shift_x_right(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
 
   // Store least significant bit of VX in VF.
   system->V[0xF] = system->V[x] & 0b00000001;
@@ -410,10 +393,8 @@ void shift_x_right(instruction next, chip8* system) {
 }
 
 void sub_x_y_rev(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  // Extract the value of Y;
-  uint8_t y = next.lo >> 4;
+  uint8_t x = X(next);
+  uint8_t y = Y(next);
 
   uint16_t sub = system->V[y] - system->V[x];
   system->V[0xF] = 1;
@@ -425,8 +406,7 @@ void sub_x_y_rev(instruction next, chip8* system) {
 }
 
 void shift_x_left(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
 
   // Store most significant bit of VX in VF.
   system->V[0xF] = system->V[x] >> 7;
@@ -436,22 +416,18 @@ void shift_x_left(instruction next, chip8* system) {
 }
 
 void if_x_neq_y(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  // Extract the value of Y;
-  uint8_t y = next.lo >> 4;
+  uint8_t x = X(next);
+  uint8_t y = Y(next);
   system->skip = (system->V[x] != system->V[y]);
 }
 
 void set_i_nnn(instruction next, chip8* system) {
-  // Extract the value of NNN.
-  uint16_t n = ((next.hi & 0x0F) << 8) + next.lo;
+  uint16_t n = NNN(next);
   system->I = n;
 }
 
 void jump_addr(instruction next, chip8* system) {
-  // Extract the value of NNN.
-  uint16_t n = ((next.hi & 0x0F) << 8) + next.lo;
+  uint16_t n = NNN(next);
   // Jump to V0 + n.
   system->pc = system->V[0] + n;
 
@@ -460,8 +436,7 @@ void jump_addr(instruction next, chip8* system) {
 }
 
 void set_rand(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
   uint8_t n = next.lo;
   // Generate the random number.
   uint8_t r = rand() % 256;
@@ -489,12 +464,9 @@ void draw_row(uint8_t x, uint8_t y, uint8_t row, chip8* system) {
 }
 
 void draw(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
-  // Extract the value of Y;
-  uint8_t y = next.lo >> 4;
-  // Extract the value of N.
-  uint8_t n = next.lo & 0x0F;
+  uint8_t x = X(next);
+  uint8_t y = Y(next);
+  uint8_t n = N(next);
 
   // Set the initial state of VF to 0.
   system->V[0x0F] = 0;
@@ -509,20 +481,17 @@ void draw(instruction next, chip8* system) {
 }
 
 void if_key_eq(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
   system->skip = system->keys[system->V[x]];
 }
 
 void if_key_neq(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
   system->skip = !system->keys[system->V[x]];
 }
 
 void get_delay(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
   system->V[x] = system->delay_timer;
 }
 
@@ -601,8 +570,7 @@ SDL_Event wait_for_keypress() {
 }
 
 void get_key(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
 
   SDL_Event e = wait_for_keypress();
   if (e.type == SDL_QUIT) {
@@ -621,26 +589,22 @@ void get_key(instruction next, chip8* system) {
 }
 
 void set_delay(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
   system->delay_timer = system->V[x];
 }
 
 void set_sound(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
   system->sound_timer = system->V[x];
 }
 
 void add_x_i(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
   system->I += system->V[x];
 }
 
 void load_char(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
 
   switch (system->V[x]) {
     case 0x00:
@@ -697,8 +661,7 @@ void load_char(instruction next, chip8* system) {
 }
 
 void bcd(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
 
   uint8_t vx = system->V[x];
   // Store the ones digit at I+2
@@ -714,8 +677,7 @@ void bcd(instruction next, chip8* system) {
 }
 
 void reg_dump(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
 
   // Store the values of each register from V0 to VX in memory.
   for (uint8_t i = 0; i <= x; ++i) {
@@ -724,8 +686,7 @@ void reg_dump(instruction next, chip8* system) {
 }
 
 void reg_load(instruction next, chip8* system) {
-  // Extract the value of X.
-  uint8_t x = next.hi & 0x0F;
+  uint8_t x = X(next);
 
   // Load values for V0 to VX from memory.
   for (uint8_t i = 0; i <= x; ++i) {

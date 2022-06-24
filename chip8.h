@@ -105,22 +105,27 @@ typedef struct chip8 {
 // Extracts the value of N from the instruction |i| in the form:
 //
 //   ___N
-uint8_t n(instruction i);
+uint8_t N(instruction i);
+
+// Extracts the value of N from the instruction |i| in the form:
+//
+//   __NN
+uint8_t NN(instruction i);
 
 // Extracts the value of NNN from the instruction |i| in the form:
 //
 //  _NNN
-uint16_t nnn(instruction i);
+uint16_t NNN(instruction i);
 
 // Extracts the value of X from the instruction |i| in the form:
 //
 //  _X__
-uint8_t x(instruction i);
+uint8_t X(instruction i);
 
 // Extracts the value of Y from the given instruction |i|.
 //
 //  __Y_
-uint8_t y(instruction i);
+uint8_t Y(instruction i);
 
 // Load the ascii font sprites into |system|'s memory.
 void load_hex_fonts(chip8* system);
