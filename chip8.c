@@ -302,13 +302,13 @@ void call(instruction next, chip8* system) {
 
 void if_x_eq_nn(instruction next, chip8* system) {
   uint8_t x = X(next);
-  uint8_t n = next.lo;
+  uint8_t n = NN(next);
   system->skip = (system->V[x] == n);
 }
 
 void if_x_neq_nn(instruction next, chip8* system) {
   uint8_t x = X(next);
-  uint8_t n = N(next);
+  uint8_t n = NN(next);
   system->skip = (system->V[x] != n);
 }
 
@@ -437,7 +437,7 @@ void jump_addr(instruction next, chip8* system) {
 
 void set_rand(instruction next, chip8* system) {
   uint8_t x = X(next);
-  uint8_t n = next.lo;
+  uint8_t n = NN(next);
   // Generate the random number.
   uint8_t r = rand() % 256;
 
