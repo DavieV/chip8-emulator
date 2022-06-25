@@ -100,6 +100,12 @@ typedef struct chip8 {
   uint8_t jumped;
 
   uint64_t cycle;
+
+  // The SDL window that the chip8 system is running in.
+  SDL_Window* window;
+
+  // The screen surface used for drawing.
+  SDL_Surface* screen_surface;
 } chip8;
 
 // Extracts the value of N from the instruction |i| in the form:
@@ -322,7 +328,11 @@ void reg_dump(instruction next, chip8* system);
 //   - I is not modified by the operation.
 void reg_load(instruction next, chip8* system);
 
+void draw_screen(chip8* system);
+
 void emulate_cycle(chip8* system);
+
+void game_loop(chip8* system);
 
 // Returns a nonzero value if |keycode| represents a key on the chip8 hex
 // keypad.

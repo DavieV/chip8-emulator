@@ -801,6 +801,29 @@ void perform_instruction(instruction next, chip8* system) {
   }
 }
 
+void draw_screen(chip8* system) {
+  SDL_Surface* screen_surface = system->screen_surface;
+  // Fill the screen black.
+  SDL_FillRect(screen_surface, NULL,
+               SDL_MapRGB(screen_surface->format, 0, 0, 0));
+
+  for (int i = 0; i < 32; ++i) {
+    for (int j = 0; j < 64; ++j) {
+      // Skip drawing if the pixel in the screen isn't set.
+      if (!system->screen[i * 64 + j]) {
+        continue;
+      }
+      SDL_Rect rect;
+      rect.y = i * 10;
+      rect.x = j * 10;
+      rect.h = 10;
+      rect.w = 10;
+      SDL_FillRect(screen_surface, &rect,
+                   SDL_MapRGB(screen_surface->format, 0xFF, 0xFF, 0xFF));
+    }
+  }
+}
+
 void emulate_cycle(chip8* system) {
   // Determine next instrution.
   instruction next = get_instruction(system);
@@ -830,6 +853,40 @@ void emulate_cycle(chip8* system) {
     if (system->sound_timer > 0) {
       fprintf(stderr, "BEEP!\n");
       --system->sound_timer;
+    }
+  }
+}
+
+void game_loop(chip8* system) {
+  uint8_t running = 1;
+  SDL_Event event;
+  while (running) {
+    while (SDL_PollEvent(&event) > 0) {
+      switch (event.type) {
+        case SDL_QUIT:
+          running = 0;
+          break;
+        case SDL_KEYDOWN:
+          if (is_chip8_key(event.key.keysym.sym)) {
+            system->keys[hex_keycode(event.key.keysym.sym)] = 1;
+          }
+          break;
+        case SDL_KEYUP:
+          if (is_chip8_key(event.key.keysym.sym)) {
+            system->keys[hex_keycode(event.key.keysym.sym)] = 0;
+          }
+          break;
+      }
+    }
+
+    // Emulate one cycle.
+    emulate_cycle(system);
+
+    // If the draw flag is set, update the screen.
+    if (system->draw_flag) {
+      draw_screen(system);
+      SDL_UpdateWindowSurface(system->window);
+      system->draw_flag = 0;
     }
   }
 }

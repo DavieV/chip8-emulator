@@ -2,3 +2,4 @@
 *.exe
 *.dll
 *.ch8
+.DS_Store
