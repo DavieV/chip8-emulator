@@ -11,27 +11,17 @@ void print_instruction(instruction i) {
   fprintf(stderr, "opcode: %d hi: %2x lo: %2x\n", i.opcode, i.hi, i.lo);
 }
 
-uint8_t N(instruction i) {
-  return i.lo & 0x0F;
-}
+uint8_t N(instruction i) { return i.lo & 0x0F; }
 
-uint8_t NN(instruction i) {
-  return i.lo;
-}
+uint8_t NN(instruction i) { return i.lo; }
 
-uint16_t NNN(instruction i) {
-  return ((i.hi & 0x0F) << 8) + i.lo;
-}
+uint16_t NNN(instruction i) { return ((i.hi & 0x0F) << 8) + i.lo; }
 
-uint8_t X(instruction i) {
-  return i.hi & 0x0F;
-}
+uint8_t X(instruction i) { return i.hi & 0x0F; }
 
-uint8_t Y(instruction i) {
-  return i.lo >> 4;
-}
+uint8_t Y(instruction i) { return i.lo >> 4; }
 
-void load_hex_fonts(chip8* system) {
+void load_hex_fonts(chip8 *system) {
   // Format for hex font characters is taken from
   // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
 
@@ -69,8 +59,8 @@ void load_hex_fonts(chip8* system) {
   memcpy(system->memory + 75, (char[]){0xF0, 0x80, 0xF0, 0x80, 0x80}, 5);
 }
 
-int load_program(const char* filename, chip8* system) {
-  FILE* f = fopen(filename, "rb");
+int load_program(const char *filename, chip8 *system) {
+  FILE *f = fopen(filename, "rb");
   if (f == NULL) {
     fprintf(stderr, "Failed to open file: %s\n", filename);
     return 1;
@@ -105,7 +95,7 @@ void print_chip8(chip8 system) {
   fprintf(stderr, "\n");
 }
 
-instruction get_instruction(const chip8* system) {
+instruction get_instruction(const chip8 *system) {
   // Read the next 2 bytes from memory.
   instruction next;
   next.hi = system->memory[system->pc];
@@ -119,167 +109,167 @@ instruction get_instruction(const chip8* system) {
   uint8_t lsb = next.lo & 0x0F;
 
   switch (msb) {
-    case 0x0:
-      if (next.hi == 0x00) {
-        if (next.lo == 0xE0) {
-          next.opcode = CLEAR_SCREEN;
-        } else if (next.lo == 0xEE) {
-          next.opcode = RETURN;
-        } else {
-          fprintf(stderr, "Unexpected lo:%2x for msb 0x00\n", next.lo);
-          exit(1);
-        }
+  case 0x0:
+    if (next.hi == 0x00) {
+      if (next.lo == 0xE0) {
+        next.opcode = CLEAR_SCREEN;
+      } else if (next.lo == 0xEE) {
+        next.opcode = RETURN;
       } else {
-        fprintf(stderr, "machine code routine...\n");
+        fprintf(stderr, "Unexpected lo:%2x for msb 0x00\n", next.lo);
         exit(1);
-        next.opcode = 0;
       }
+    } else {
+      fprintf(stderr, "machine code routine...\n");
+      exit(1);
+      next.opcode = 0;
+    }
+    break;
+  case 0x01:
+    next.opcode = JUMP;
+    break;
+  case 0x02:
+    next.opcode = CALL;
+    break;
+  case 0x03:
+    next.opcode = IF_X_EQ_NN;
+    break;
+  case 0x04:
+    next.opcode = IF_X_NEQ_NN;
+    break;
+  case 0x05:
+    next.opcode = IF_X_EQ_Y;
+    break;
+  case 0x06:
+    next.opcode = SET_X_NN;
+    break;
+  case 0x07:
+    next.opcode = ADD_X_NN;
+    break;
+  case 0x08:
+    switch (lsb) {
+    case 0:
+      next.opcode = SET_X_Y;
       break;
-    case 0x01:
-      next.opcode = JUMP;
+    case 1:
+      next.opcode = OR_X_Y;
       break;
-    case 0x02:
-      next.opcode = CALL;
+    case 2:
+      next.opcode = AND_X_Y;
       break;
-    case 0x03:
-      next.opcode = IF_X_EQ_NN;
+    case 3:
+      next.opcode = XOR_X_Y;
       break;
-    case 0x04:
-      next.opcode = IF_X_NEQ_NN;
+    case 4:
+      next.opcode = ADD_X_Y;
       break;
-    case 0x05:
-      next.opcode = IF_X_EQ_Y;
+    case 5:
+      next.opcode = SUB_X_Y;
       break;
-    case 0x06:
-      next.opcode = SET_X_NN;
+    case 6:
+      next.opcode = SHIFT_X_RIGHT;
       break;
-    case 0x07:
-      next.opcode = ADD_X_NN;
-      break;
-    case 0x08:
-      switch (lsb) {
-        case 0:
-          next.opcode = SET_X_Y;
-          break;
-        case 1:
-          next.opcode = OR_X_Y;
-          break;
-        case 2:
-          next.opcode = AND_X_Y;
-          break;
-        case 3:
-          next.opcode = XOR_X_Y;
-          break;
-        case 4:
-          next.opcode = ADD_X_Y;
-          break;
-        case 5:
-          next.opcode = SUB_X_Y;
-          break;
-        case 6:
-          next.opcode = SHIFT_X_RIGHT;
-          break;
-        case 7:
-          next.opcode = SUB_X_Y_REV;
-          break;
-        case 0x0E:
-          next.opcode = SHIFT_X_LEFT;
-          break;
-        default:
-          fprintf(stderr, "Unexpected lsb:%2x for msb 0x08\n", lsb);
-          exit(1);
-          break;
-      }
-      break;
-    case 0x09:
-      next.opcode = IF_X_NEQ_Y;
-      break;
-    case 0x0A:
-      next.opcode = SET_I_NNN;
-      break;
-    case 0x0B:
-      next.opcode = JUMP_ADDR;
-      break;
-    case 0x0C:
-      next.opcode = SET_RAND;
-      break;
-    case 0x0D:
-      next.opcode = DRAW;
+    case 7:
+      next.opcode = SUB_X_Y_REV;
       break;
     case 0x0E:
-      switch (next.lo) {
-        case 0x9E:
-          next.opcode = IF_KEY_EQ;
-          break;
-        case 0xA1:
-          next.opcode = IF_KEY_NEQ;
-          break;
-        default:
-          fprintf(stderr, "Unexpected lo:%2x for msb 0x0E\n", next.lo);
-          exit(1);
-          break;
-      }
-      break;
-    case 0x0F:
-      switch (next.lo) {
-        case 0x07:
-          next.opcode = GET_DELAY;
-          break;
-        case 0x0A:
-          next.opcode = GET_KEY;
-          break;
-        case 0x15:
-          next.opcode = SET_DELAY;
-          break;
-        case 0x18:
-          next.opcode = SET_SOUND;
-          break;
-        case 0x1E:
-          next.opcode = ADD_X_I;
-          break;
-        case 0x29:
-          next.opcode = LOAD_CHAR;
-          break;
-        case 0x33:
-          next.opcode = BCD;
-          break;
-        case 0x55:
-          next.opcode = REG_DUMP;
-          break;
-        case 0x65:
-          next.opcode = REG_LOAD;
-          break;
-        default:
-          fprintf(stderr, "Unexpected lo:%2x for msb 0x0F\n", next.lo);
-          exit(1);
-          break;
-      }
+      next.opcode = SHIFT_X_LEFT;
       break;
     default:
-      fprintf(stderr, "Unexpected value for msb:%2x\n", msb);
+      fprintf(stderr, "Unexpected lsb:%2x for msb 0x08\n", lsb);
       exit(1);
       break;
+    }
+    break;
+  case 0x09:
+    next.opcode = IF_X_NEQ_Y;
+    break;
+  case 0x0A:
+    next.opcode = SET_I_NNN;
+    break;
+  case 0x0B:
+    next.opcode = JUMP_ADDR;
+    break;
+  case 0x0C:
+    next.opcode = SET_RAND;
+    break;
+  case 0x0D:
+    next.opcode = DRAW;
+    break;
+  case 0x0E:
+    switch (next.lo) {
+    case 0x9E:
+      next.opcode = IF_KEY_EQ;
+      break;
+    case 0xA1:
+      next.opcode = IF_KEY_NEQ;
+      break;
+    default:
+      fprintf(stderr, "Unexpected lo:%2x for msb 0x0E\n", next.lo);
+      exit(1);
+      break;
+    }
+    break;
+  case 0x0F:
+    switch (next.lo) {
+    case 0x07:
+      next.opcode = GET_DELAY;
+      break;
+    case 0x0A:
+      next.opcode = GET_KEY;
+      break;
+    case 0x15:
+      next.opcode = SET_DELAY;
+      break;
+    case 0x18:
+      next.opcode = SET_SOUND;
+      break;
+    case 0x1E:
+      next.opcode = ADD_X_I;
+      break;
+    case 0x29:
+      next.opcode = LOAD_CHAR;
+      break;
+    case 0x33:
+      next.opcode = BCD;
+      break;
+    case 0x55:
+      next.opcode = REG_DUMP;
+      break;
+    case 0x65:
+      next.opcode = REG_LOAD;
+      break;
+    default:
+      fprintf(stderr, "Unexpected lo:%2x for msb 0x0F\n", next.lo);
+      exit(1);
+      break;
+    }
+    break;
+  default:
+    fprintf(stderr, "Unexpected value for msb:%2x\n", msb);
+    exit(1);
+    break;
   }
 
   return next;
 }
 
-void set_register(uint8_t vx, uint8_t val, chip8* system) {
+void set_register(uint8_t vx, uint8_t val, chip8 *system) {
   system->V[vx] = val;
 }
 
-void clear_screen(instruction next, chip8* system) {
+void clear_screen(instruction next, chip8 *system) {
   memset(system->screen, 0, sizeof(system->screen));
 }
 
-void return_subroutine(instruction next, chip8* system) {
+void return_subroutine(instruction next, chip8 *system) {
   // TODO: add a check that sp > 0.
   // Retrieve the old value of |pc| from the stack.
   system->sp -= 1;
   system->pc = system->stack[system->sp];
 }
 
-void jump(instruction next, chip8* system) {
+void jump(instruction next, chip8 *system) {
   uint16_t n = NNN(next);
   system->pc = n;
 
@@ -287,7 +277,7 @@ void jump(instruction next, chip8* system) {
   system->jumped = 1;
 }
 
-void call(instruction next, chip8* system) {
+void call(instruction next, chip8 *system) {
   uint16_t n = NNN(next);
   // Store the current program counter on the stack.
   system->stack[system->sp] = system->pc;
@@ -300,61 +290,61 @@ void call(instruction next, chip8* system) {
   system->jumped = 1;
 }
 
-void if_x_eq_nn(instruction next, chip8* system) {
+void if_x_eq_nn(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t n = NN(next);
   system->skip = (system->V[x] == n);
 }
 
-void if_x_neq_nn(instruction next, chip8* system) {
+void if_x_neq_nn(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t n = NN(next);
   system->skip = (system->V[x] != n);
 }
 
-void if_x_eq_y(instruction next, chip8* system) {
+void if_x_eq_y(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t y = Y(next);
   system->skip = (system->V[x] == system->V[y]);
 }
 
-void set_x_nn(instruction next, chip8* system) {
+void set_x_nn(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t n = NN(next);
   system->V[x] = n;
 }
 
-void add_x_nn(instruction next, chip8* system) {
+void add_x_nn(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t n = NN(next);
   system->V[x] += n;
 }
 
-void set_x_y(instruction next, chip8* system) {
+void set_x_y(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t y = Y(next);
   system->V[x] = system->V[y];
 }
 
-void or_x_y(instruction next, chip8* system) {
+void or_x_y(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t y = Y(next);
   system->V[x] = system->V[x] | system->V[y];
 }
 
-void and_x_y(instruction next, chip8* system) {
+void and_x_y(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t y = Y(next);
   system->V[x] = system->V[x] & system->V[y];
 }
 
-void xor_x_y(instruction next, chip8* system) {
+void xor_x_y(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t y = Y(next);
   system->V[x] = system->V[x] ^ system->V[y];
 }
 
-void add_x_y(instruction next, chip8* system) {
+void add_x_y(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t y = Y(next);
 
@@ -369,7 +359,7 @@ void add_x_y(instruction next, chip8* system) {
   system->V[x] = system->V[x] + system->V[y];
 }
 
-void sub_x_y(instruction next, chip8* system) {
+void sub_x_y(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t y = Y(next);
 
@@ -382,7 +372,7 @@ void sub_x_y(instruction next, chip8* system) {
   system->V[x] = system->V[x] - system->V[y];
 }
 
-void shift_x_right(instruction next, chip8* system) {
+void shift_x_right(instruction next, chip8 *system) {
   uint8_t x = X(next);
 
   // Store least significant bit of VX in VF.
@@ -392,7 +382,7 @@ void shift_x_right(instruction next, chip8* system) {
   system->V[x] = system->V[x] >> 1;
 }
 
-void sub_x_y_rev(instruction next, chip8* system) {
+void sub_x_y_rev(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t y = Y(next);
 
@@ -405,7 +395,7 @@ void sub_x_y_rev(instruction next, chip8* system) {
   system->V[x] = system->V[y] - system->V[x];
 }
 
-void shift_x_left(instruction next, chip8* system) {
+void shift_x_left(instruction next, chip8 *system) {
   uint8_t x = X(next);
 
   // Store most significant bit of VX in VF.
@@ -415,18 +405,18 @@ void shift_x_left(instruction next, chip8* system) {
   system->V[x] = system->V[x] << 1;
 }
 
-void if_x_neq_y(instruction next, chip8* system) {
+void if_x_neq_y(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t y = Y(next);
   system->skip = (system->V[x] != system->V[y]);
 }
 
-void set_i_nnn(instruction next, chip8* system) {
+void set_i_nnn(instruction next, chip8 *system) {
   uint16_t n = NNN(next);
   system->I = n;
 }
 
-void jump_addr(instruction next, chip8* system) {
+void jump_addr(instruction next, chip8 *system) {
   uint16_t n = NNN(next);
   // Jump to V0 + n.
   system->pc = system->V[0] + n;
@@ -435,7 +425,7 @@ void jump_addr(instruction next, chip8* system) {
   system->jumped = 1;
 }
 
-void set_rand(instruction next, chip8* system) {
+void set_rand(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t n = NN(next);
   // Generate the random number.
@@ -444,7 +434,7 @@ void set_rand(instruction next, chip8* system) {
   system->V[x] = r & n;
 }
 
-void draw_row(uint8_t x, uint8_t y, uint8_t row, chip8* system) {
+void draw_row(uint8_t x, uint8_t y, uint8_t row, chip8 *system) {
   for (int i = 0; i < 8; ++i) {
     uint8_t sprite_pixel = (row >> i) & 1;
     // Start from the right side of the row.
@@ -463,7 +453,7 @@ void draw_row(uint8_t x, uint8_t y, uint8_t row, chip8* system) {
   }
 }
 
-void draw(instruction next, chip8* system) {
+void draw(instruction next, chip8 *system) {
   uint8_t x = X(next);
   uint8_t y = Y(next);
   uint8_t n = N(next);
@@ -480,83 +470,83 @@ void draw(instruction next, chip8* system) {
   system->draw_flag = 1;
 }
 
-void if_key_eq(instruction next, chip8* system) {
+void if_key_eq(instruction next, chip8 *system) {
   uint8_t x = X(next);
   system->skip = system->keys[system->V[x]];
 }
 
-void if_key_neq(instruction next, chip8* system) {
+void if_key_neq(instruction next, chip8 *system) {
   uint8_t x = X(next);
   system->skip = !system->keys[system->V[x]];
 }
 
-void get_delay(instruction next, chip8* system) {
+void get_delay(instruction next, chip8 *system) {
   uint8_t x = X(next);
   system->V[x] = system->delay_timer;
 }
 
 uint8_t is_chip8_key(SDL_Keycode keycode) {
   switch (keycode) {
-    case SDLK_1:
-    case SDLK_2:
-    case SDLK_3:
-    case SDLK_4:
-    case SDLK_q:
-    case SDLK_w:
-    case SDLK_e:
-    case SDLK_r:
-    case SDLK_a:
-    case SDLK_s:
-    case SDLK_d:
-    case SDLK_f:
-    case SDLK_z:
-    case SDLK_x:
-    case SDLK_c:
-    case SDLK_v:
-      return 1;
-    default:
-      return 0;
+  case SDLK_1:
+  case SDLK_2:
+  case SDLK_3:
+  case SDLK_4:
+  case SDLK_q:
+  case SDLK_w:
+  case SDLK_e:
+  case SDLK_r:
+  case SDLK_a:
+  case SDLK_s:
+  case SDLK_d:
+  case SDLK_f:
+  case SDLK_z:
+  case SDLK_x:
+  case SDLK_c:
+  case SDLK_v:
+    return 1;
+  default:
+    return 0;
   }
   return 0;
 }
 
 uint8_t hex_keycode(SDL_Keycode keycode) {
   switch (keycode) {
-    case SDLK_1:
-      return 0x01;
-    case SDLK_2:
-      return 0x02;
-    case SDLK_3:
-      return 0x03;
-    case SDLK_4:
-      return 0x0C;
-    case SDLK_q:
-      return 0x04;
-    case SDLK_w:
-      return 0x05;
-    case SDLK_e:
-      return 0x06;
-    case SDLK_r:
-      return 0x0D;
-    case SDLK_a:
-      return 0x07;
-    case SDLK_s:
-      return 0x08;
-    case SDLK_d:
-      return 0x09;
-    case SDLK_f:
-      return 0x0E;
-    case SDLK_z:
-      return 0x0A;
-    case SDLK_x:
-      return 0x00;
-    case SDLK_c:
-      return 0x0B;
-    case SDLK_v:
-      return 0x0F;
-    default:
-      fprintf(stderr, "Invalid hex keycode %d\n", keycode);
-      return 0;
+  case SDLK_1:
+    return 0x01;
+  case SDLK_2:
+    return 0x02;
+  case SDLK_3:
+    return 0x03;
+  case SDLK_4:
+    return 0x0C;
+  case SDLK_q:
+    return 0x04;
+  case SDLK_w:
+    return 0x05;
+  case SDLK_e:
+    return 0x06;
+  case SDLK_r:
+    return 0x0D;
+  case SDLK_a:
+    return 0x07;
+  case SDLK_s:
+    return 0x08;
+  case SDLK_d:
+    return 0x09;
+  case SDLK_f:
+    return 0x0E;
+  case SDLK_z:
+    return 0x0A;
+  case SDLK_x:
+    return 0x00;
+  case SDLK_c:
+    return 0x0B;
+  case SDLK_v:
+    return 0x0F;
+  default:
+    fprintf(stderr, "Invalid hex keycode %d\n", keycode);
+    return 0;
   }
 }
 
@@ -569,7 +559,7 @@ SDL_Event wait_for_keypress() {
   return e;
 }
 
-void get_key(instruction next, chip8* system) {
+void get_key(instruction next, chip8 *system) {
   uint8_t x = X(next);
 
   SDL_Event e = wait_for_keypress();
@@ -588,79 +578,79 @@ void get_key(instruction next, chip8* system) {
   }
 }
 
-void set_delay(instruction next, chip8* system) {
+void set_delay(instruction next, chip8 *system) {
   uint8_t x = X(next);
   system->delay_timer = system->V[x];
 }
 
-void set_sound(instruction next, chip8* system) {
+void set_sound(instruction next, chip8 *system) {
   uint8_t x = X(next);
   system->sound_timer = system->V[x];
 }
 
-void add_x_i(instruction next, chip8* system) {
+void add_x_i(instruction next, chip8 *system) {
   uint8_t x = X(next);
   system->I += system->V[x];
 }
 
-void load_char(instruction next, chip8* system) {
+void load_char(instruction next, chip8 *system) {
   uint8_t x = X(next);
 
   switch (system->V[x]) {
-    case 0x00:
-      system->I = 0x00;  // 0
-      break;
-    case 0x01:
-      system->I = 5;  // 5
-      break;
-    case 0x02:
-      system->I = 10;  // 10
-      break;
-    case 0x03:
-      system->I = 15;  // 15
-      break;
-    case 0x04:
-      system->I = 20;  // 20
-      break;
-    case 0x05:
-      system->I = 25;  // 25
-      break;
-    case 0x06:
-      system->I = 30;  // 30
-      break;
-    case 0x07:
-      system->I = 35;  // 35
-      break;
-    case 0x08:
-      system->I = 40;  // 40
-      break;
-    case 0x09:
-      system->I = 45;  // 45
-      break;
-    case 0x0A:
-      system->I = 50;  // 50
-      break;
-    case 0x0B:
-      system->I = 55;  // 55
-      break;
-    case 0x0C:
-      system->I = 60;  // 60
-      break;
-    case 0x0D:
-      system->I = 65;  // 65
-      break;
-    case 0x0E:
-      system->I = 70;  // 70
-      break;
-    case 0x0F:
-      system->I = 75;  // 75
-      break;
-    default:
-      break;
+  case 0x00:
+    system->I = 0x00; // 0
+    break;
+  case 0x01:
+    system->I = 5; // 5
+    break;
+  case 0x02:
+    system->I = 10; // 10
+    break;
+  case 0x03:
+    system->I = 15; // 15
+    break;
+  case 0x04:
+    system->I = 20; // 20
+    break;
+  case 0x05:
+    system->I = 25; // 25
+    break;
+  case 0x06:
+    system->I = 30; // 30
+    break;
+  case 0x07:
+    system->I = 35; // 35
+    break;
+  case 0x08:
+    system->I = 40; // 40
+    break;
+  case 0x09:
+    system->I = 45; // 45
+    break;
+  case 0x0A:
+    system->I = 50; // 50
+    break;
+  case 0x0B:
+    system->I = 55; // 55
+    break;
+  case 0x0C:
+    system->I = 60; // 60
+    break;
+  case 0x0D:
+    system->I = 65; // 65
+    break;
+  case 0x0E:
+    system->I = 70; // 70
+    break;
+  case 0x0F:
+    system->I = 75; // 75
+    break;
+  default:
+    break;
   }
 }
 
-void bcd(instruction next, chip8* system) {
+void bcd(instruction next, chip8 *system) {
   uint8_t x = X(next);
 
   uint8_t vx = system->V[x];
@@ -676,7 +666,7 @@ void bcd(instruction next, chip8* system) {
   system->memory[system->I] = vx % 10;
 }
 
-void reg_dump(instruction next, chip8* system) {
+void reg_dump(instruction next, chip8 *system) {
   uint8_t x = X(next);
 
   // Store the values of each register from V0 to VX in memory.
@@ -685,7 +675,7 @@ void reg_dump(instruction next, chip8* system) {
   }
 }
 
-void reg_load(instruction next, chip8* system) {
+void reg_load(instruction next, chip8 *system) {
   uint8_t x = X(next);
 
   // Load values for V0 to VX from memory.
@@ -694,115 +684,115 @@ void reg_load(instruction next, chip8* system) {
   }
 }
 
-void perform_instruction(instruction next, chip8* system) {
+void perform_instruction(instruction next, chip8 *system) {
   switch (next.opcode) {
-    case CLEAR_SCREEN:
-      clear_screen(next, system);
-      break;
-    case RETURN:
-      return_subroutine(next, system);
-      break;
-    case JUMP:
-      jump(next, system);
-      break;
-    case CALL:
-      call(next, system);
-      break;
-    case IF_X_EQ_NN:
-      if_x_eq_nn(next, system);
-      break;
-    case IF_X_NEQ_NN:
-      if_x_neq_nn(next, system);
-      break;
-    case IF_X_EQ_Y:
-      if_x_eq_y(next, system);
-      break;
-    case SET_X_NN:
-      set_x_nn(next, system);
-      break;
-    case ADD_X_NN:
-      add_x_nn(next, system);
-      break;
-    case SET_X_Y:
-      set_x_y(next, system);
-      break;
-    case OR_X_Y:
-      or_x_y(next, system);
-      break;
-    case AND_X_Y:
-      and_x_y(next, system);
-      break;
-    case XOR_X_Y:
-      xor_x_y(next, system);
-      break;
-    case ADD_X_Y:
-      add_x_y(next, system);
-      break;
-    case SUB_X_Y:
-      sub_x_y(next, system);
-      break;
-    case SHIFT_X_RIGHT:
-      shift_x_right(next, system);
-      break;
-    case SHIFT_X_LEFT:
-      shift_x_left(next, system);
-      break;
-    case IF_X_NEQ_Y:
-      if_x_neq_y(next, system);
-      break;
-    case SET_I_NNN:
-      set_i_nnn(next, system);
-      break;
-    case JUMP_ADDR:
-      jump_addr(next, system);
-      break;
-    case SET_RAND:
-      set_rand(next, system);
-      break;
-    case DRAW:
-      draw(next, system);
-      break;
-    case IF_KEY_EQ:
-      if_key_eq(next, system);
-      break;
-    case IF_KEY_NEQ:
-      if_key_neq(next, system);
-      break;
-    case GET_DELAY:
-      get_delay(next, system);
-      break;
-    case GET_KEY:
-      get_key(next, system);
-      break;
-    case SET_DELAY:
-      set_delay(next, system);
-      break;
-    case SET_SOUND:
-      set_sound(next, system);
-      break;
-    case ADD_X_I:
-      add_x_i(next, system);
-      break;
-    case LOAD_CHAR:
-      load_char(next, system);
-      break;
-    case BCD:
-      bcd(next, system);
-      break;
-    case REG_DUMP:
-      reg_dump(next, system);
-      break;
-    case REG_LOAD:
-      reg_load(next, system);
-      break;
-    default:
-      fprintf(stderr, "Unknown instruction: %d\n", next.opcode);
-      break;
+  case CLEAR_SCREEN:
+    clear_screen(next, system);
+    break;
+  case RETURN:
+    return_subroutine(next, system);
+    break;
+  case JUMP:
+    jump(next, system);
+    break;
+  case CALL:
+    call(next, system);
+    break;
+  case IF_X_EQ_NN:
+    if_x_eq_nn(next, system);
+    break;
+  case IF_X_NEQ_NN:
+    if_x_neq_nn(next, system);
+    break;
+  case IF_X_EQ_Y:
+    if_x_eq_y(next, system);
+    break;
+  case SET_X_NN:
+    set_x_nn(next, system);
+    break;
+  case ADD_X_NN:
+    add_x_nn(next, system);
+    break;
+  case SET_X_Y:
+    set_x_y(next, system);
+    break;
+  case OR_X_Y:
+    or_x_y(next, system);
+    break;
+  case AND_X_Y:
+    and_x_y(next, system);
+    break;
+  case XOR_X_Y:
+    xor_x_y(next, system);
+    break;
+  case ADD_X_Y:
+    add_x_y(next, system);
+    break;
+  case SUB_X_Y:
+    sub_x_y(next, system);
+    break;
+  case SHIFT_X_RIGHT:
+    shift_x_right(next, system);
+    break;
+  case SHIFT_X_LEFT:
+    shift_x_left(next, system);
+    break;
+  case IF_X_NEQ_Y:
+    if_x_neq_y(next, system);
+    break;
+  case SET_I_NNN:
+    set_i_nnn(next, system);
+    break;
+  case JUMP_ADDR:
+    jump_addr(next, system);
+    break;
+  case SET_RAND:
+    set_rand(next, system);
+    break;
+  case DRAW:
+    draw(next, system);
+    break;
+  case IF_KEY_EQ:
+    if_key_eq(next, system);
+    break;
+  case IF_KEY_NEQ:
+    if_key_neq(next, system);
+    break;
+  case GET_DELAY:
+    get_delay(next, system);
+    break;
+  case GET_KEY:
+    get_key(next, system);
+    break;
+  case SET_DELAY:
+    set_delay(next, system);
+    break;
+  case SET_SOUND:
+    set_sound(next, system);
+    break;
+  case ADD_X_I:
+    add_x_i(next, system);
+    break;
+  case LOAD_CHAR:
+    load_char(next, system);
+    break;
+  case BCD:
+    bcd(next, system);
+    break;
+  case REG_DUMP:
+    reg_dump(next, system);
+    break;
+  case REG_LOAD:
+    reg_load(next, system);
+    break;
+  default:
+    fprintf(stderr, "Unknown instruction: %d\n", next.opcode);
+    break;
   }
 }
 
-void draw_screen(chip8* system) {
-  SDL_Surface* screen_surface = system->screen_surface;
+void draw_screen(chip8 *system) {
+  SDL_Surface *screen_surface = system->screen_surface;
   // Fill the screen black.
   SDL_FillRect(screen_surface, NULL,
                SDL_MapRGB(screen_surface->format, 0, 0, 0));
@@ -824,7 +814,7 @@ void draw_screen(chip8* system) {
   }
 }
 
-void emulate_cycle(chip8* system) {
+void emulate_cycle(chip8 *system) {
   // Determine next instrution.
   instruction next = get_instruction(system);
 
@@ -857,25 +847,25 @@ void emulate_cycle(chip8* system) {
   }
 }
 
-void game_loop(chip8* system) {
+void game_loop(chip8 *system) {
   uint8_t running = 1;
   SDL_Event event;
   while (running) {
     while (SDL_PollEvent(&event) > 0) {
       switch (event.type) {
-        case SDL_QUIT:
-          running = 0;
-          break;
-        case SDL_KEYDOWN:
-          if (is_chip8_key(event.key.keysym.sym)) {
-            system->keys[hex_keycode(event.key.keysym.sym)] = 1;
-          }
-          break;
-        case SDL_KEYUP:
-          if (is_chip8_key(event.key.keysym.sym)) {
-            system->keys[hex_keycode(event.key.keysym.sym)] = 0;
-          }
-          break;
+      case SDL_QUIT:
+        running = 0;
+        break;
+      case SDL_KEYDOWN:
+        if (is_chip8_key(event.key.keysym.sym)) {
+          system->keys[hex_keycode(event.key.keysym.sym)] = 1;
+        }
+        break;
+      case SDL_KEYUP:
+        if (is_chip8_key(event.key.keysym.sym)) {
+          system->keys[hex_keycode(event.key.keysym.sym)] = 0;
+        }
+        break;
       }
     }
 

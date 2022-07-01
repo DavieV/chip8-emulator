@@ -571,7 +571,7 @@ void test_reg_load() {
   assert(system.V[2] == 255);
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   fprintf(stderr, "Running tests...\n");
 
   // Call any test functions here.
@@ -584,38 +584,38 @@ int main(int argc, char* argv[]) {
 
   // Instruction tests.
 
-  test_clear_screen();       // 0x00E0
-  test_return_subroutine();  // 0x00EE
-  test_jump();               // 0x1NNN
-  test_call();               // 0x2NNN
-  test_if_x_eq_nn();         // 0x3XNN
-  test_if_x_neq_nn();        // 0x4XNN
-  test_if_x_eq_y();          // 0x5XY0
-  test_set_x_nn();           // 0x6XNN
-  test_add_x_nn();           // 0x7XNN
-  test_set_x_y();            // 0x8XY0
-  test_or_x_y();             // 0x8XY1
-  test_and_x_y();            // 0x8XY2
-  test_xor_x_y();            // 0x8XY3
-  test_add_x_y();            // 0x8XY4
-  test_sub_x_y();            // 0x8XY5
-  test_shift_x_right();      // 0x8XY6
-  test_shift_x_left();       // 0x8XY7
-  test_shift_x_left();       // 0x8XYE
-  test_if_x_neq_y();         // 0x9XY0
-  test_set_i_nnn();          // 0xANNN
-  test_jump_addr();          // 0xBNNN
-  test_set_rand();           // 0xCXNN
-  test_draw();               // 0xDXYN
-  test_if_key_eq();          // 0xEX9E
-  test_if_key_neq();         // 0xEXA1
-  test_get_delay();          // 0xFX07
-  test_set_delay();          // 0xFX15
-  test_set_sound();          // 0xFX18
-  test_add_x_i();            // 0xFX1E
-  test_bcd();                // 0xFX33
-  test_reg_dump();           // 0xFX55
-  test_reg_load();           // 0xFX65
+  test_clear_screen();      // 0x00E0
+  test_return_subroutine(); // 0x00EE
+  test_jump();              // 0x1NNN
+  test_call();              // 0x2NNN
+  test_if_x_eq_nn();        // 0x3XNN
+  test_if_x_neq_nn();       // 0x4XNN
+  test_if_x_eq_y();         // 0x5XY0
+  test_set_x_nn();          // 0x6XNN
+  test_add_x_nn();          // 0x7XNN
+  test_set_x_y();           // 0x8XY0
+  test_or_x_y();            // 0x8XY1
+  test_and_x_y();           // 0x8XY2
+  test_xor_x_y();           // 0x8XY3
+  test_add_x_y();           // 0x8XY4
+  test_sub_x_y();           // 0x8XY5
+  test_shift_x_right();     // 0x8XY6
+  test_shift_x_left();      // 0x8XY7
+  test_shift_x_left();      // 0x8XYE
+  test_if_x_neq_y();        // 0x9XY0
+  test_set_i_nnn();         // 0xANNN
+  test_jump_addr();         // 0xBNNN
+  test_set_rand();          // 0xCXNN
+  test_draw();              // 0xDXYN
+  test_if_key_eq();         // 0xEX9E
+  test_if_key_neq();        // 0xEXA1
+  test_get_delay();         // 0xFX07
+  test_set_delay();         // 0xFX15
+  test_set_sound();         // 0xFX18
+  test_add_x_i();           // 0xFX1E
+  test_bcd();               // 0xFX33
+  test_reg_dump();          // 0xFX55
+  test_reg_load();          // 0xFX65
 
   fprintf(stderr, "Tests completed successfully!\n");
   return 0;
